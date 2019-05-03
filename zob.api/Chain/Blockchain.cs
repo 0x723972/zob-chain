@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace zob.api.Chain
 {
@@ -35,6 +37,25 @@ namespace zob.api.Chain
 
         public void ProofOfWork(int previousProof)
         {
+            var newProof = 1;
+            var checkProof = false;
+            while (!checkProof)
+            {
+                //var hashOperation = SHA256.Create();
+                using (var sha256 = SHA256.Create())
+                {
+                    var hashOperation = sha256.ComputeHash(Encoding.UTF8.GetBytes($"{newProof^2 - previousProof^2}"));
+                    var hash = BitConverter.ToString(hashOperation).Replace("-", "").ToLower();
+                    if (hash.StartsWith("0000"))
+                    {
+                        checkProof = true;
+                    }
+                    else
+                    {
+                        newProof++;
+                    }
+                }
+            }
 
         }
     }
