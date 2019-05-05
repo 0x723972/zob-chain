@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
+using Newtonsoft.Json;
 
 namespace zob.api.Chain
 {
@@ -57,6 +58,39 @@ namespace zob.api.Chain
                 }
             }
 
+        }
+
+        public string Hash(Block block)
+        {
+            var encodedBlock = JsonConvert.SerializeObject(block);
+            using (var sha256 = SHA256.Create())
+            {
+                var computedHash = sha256.ComputeHash(Encoding.UTF8.GetBytes(encodedBlock));
+                var hash = BitConverter.ToString(computedHash).Replace("-", "").ToLower();
+                return hash;
+            }
+        }
+
+        public bool IsChainValid(List<Block> chain)
+        {
+            var previousBlock = chain[0];
+            var blockIndex = 1;
+            while (blockIndex < chain.Count)
+            {
+                var block = chain[blockIndex];
+                if (block.PreviousHash != Hash(previousBlock)) return false;
+                var proof = block.Proof;
+                var previousProof = previousBlock.Proof;
+                using (var sha256 = SHA256.Create())
+                {
+                    var hashOperation = sha256.ComputeHash(Encoding.UTF8.GetBytes($"{proof^2 - previousProof^2}"));
+                    var hash = BitConverter.ToString(hashOperation).Replace("-", "").ToLower();
+                    if (!hash.StartsWith("0000")) return false;
+                    previousBlock = block;
+                    blockIndex++;
+                }
+            }
+            return true;
         }
     }
 }
